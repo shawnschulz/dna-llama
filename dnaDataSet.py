@@ -79,9 +79,11 @@ class dnaDataSet:
             to save where user specifies filepath
         '''
         if not memoryDir:
-            self.promptOutput.save_to_disk(fp)
+            with open(fp, "w") as outfile:
+                json.dump(self.promptOutput, outfile)
         else:
-            self.promptOutput.save_to_disk(self.memoryDir + '/' + fp)
+            ith open(self.memoryDir + '/' + fp, "w") as outfile:
+                json.dump(self.promptOutput, outfile)
     
     def saveMutationDictionary(self, fp, memoryDir=False):
         '''
