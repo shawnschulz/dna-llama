@@ -172,9 +172,9 @@ class dnaDataSet:
                     #         print(str(x))
 
         return(mutation_dictionary)
-    def fewShotLearning(self, read):
+    def fewShotLearning(self, read, directory=os.getcwd(),save=True):
         '''
-            takes a read as a prompt
+            takes a read as a prompt and runs inference with llama.cpp model, note that it automtically saves json files of ur convo and 
             
             NOTE: currently only functional with a llama cpp model, may add functionality with other hf model calls when I actually have the gpu power to 
             do those lol
@@ -187,4 +187,8 @@ class dnaDataSet:
                 prompt_string += "Input: " + key + "\n" + " Output: " + self.mutationDictionary[key] + "\n"
         prompt = 'Reference Genome: hg38, Read: ' + read
         output = llm(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ", max_tokens=32, stop=["Input:"], echo=True)
+        if save:    
+            self.promptOutput = output
+            self.saveOutput(directory + '/output.json')
+            self.saveMutationDictionary(directory + '/mutationDictionary.json')
         print(output)
