@@ -1,7 +1,16 @@
 # THESE ARE ALL WORKS IN PROGRESS - USE AND COMMENT ON AT YOUR OWN RISK
 
+# dnaDataSet.py
+Defines the dnaDataSet class, which is meant to be sort of like a scanpy for working with dna mutations with operability with llm datasets for finetuning and prompting with dna info from tsvs and vcfs. Currently just has a method to do few shot learning with llama.cpp quantized models since thats the only thing I can perform inference on reliably at the moment, and also just saves convos and outputs as json files.
+
+To-do
+- Add methods using langchain or pinecone api for saving and prompt convo info to vector database
+- Add methods to use non llama.cpp models
+- Add methods to fine tune non llama.cpp models
+- Add method to perform vcf2tsv and annovar for user through python 
+
 # dna-llama.ipynb
-Few shot learning using alpaca lora quantized, parses annotated tsv files
+Few shot learning using alpaca lora 30B quantized, parses annotated tsv files
 
 To-do
 - Format inputs to prompt for few shot learning
