@@ -173,6 +173,9 @@ class dnaDataSet:
     def fewShotLearning(self, read):
         '''
             takes a read as a prompt
+            
+            NOTE: currently only functional with a llama cpp model, may add functionality with other hf model calls when I actually have the gpu power to 
+            do those lol
         '''
         counter = 0
         prompt_string = ''
