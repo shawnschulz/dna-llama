@@ -16,5 +16,5 @@ To-do
 - Add in visualization to see whether it worked or not lol
 - If it's working well, remove mutations with low loss
 
-#dna-BERT
+# dna-BERT
 Similar idea to dna enformer but uses bert instead
