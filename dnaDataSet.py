@@ -187,8 +187,8 @@ class dnaDataSet:
                 prompt_string += "Input: " + key + "\n" + " Output: " + self.mutationDictionary[key] + "\n"
         prompt = 'Reference Genome: hg38, Read: ' + read
         output = llm(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ", max_tokens=32, stop=["Input:"], echo=True)
+        self.promptOutput += "\n" + output
         if save:    
-            self.promptOutput = output
             self.saveOutput(directory + '/output.json')
             self.saveMutationDictionary(directory + '/mutationDictionary.json')
         print(output)
