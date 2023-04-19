@@ -1,6 +1,5 @@
 import torch
 import polars as pl
-from enformer_pytorch import Enformer, GenomeIntervalDataset
 from datasets import concatenate_datasets, load_dataset
 import os
 import numpy as np
@@ -172,9 +171,12 @@ class dnaDataSet:
                     #         print(str(x))
 
         return(mutation_dictionary)
+    
+    
     def fewShotLearning(self, read, directory=os.getcwd(),save=True):
         '''
-            takes a read as a prompt and runs inference with llama.cpp model, note that it automtically saves json files of ur convo and 
+            takes a read as a prompt and runs inference with llama.cpp model, note that it automtically saves json files of ur convo and the few shot learning
+            dataset that is produced
             
             NOTE: currently only functional with a llama cpp model, may add functionality with other hf model calls when I actually have the gpu power to 
             do those lol
