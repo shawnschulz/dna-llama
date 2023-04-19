@@ -14,9 +14,7 @@ Few shot learning using alpaca lora 30B quantized, parses annotated tsv files
 
 To-do
 - Format inputs to prompt for few shot learning
-- Actually add the few shot learning using a LLM
 - Add in option to input VCF and do vcf2tsv and annovar for the user
-- Make a class for llama-dataset
 
 # dna-enformer
 Take a fasta file containing many DNA artifacts and construct genomic tracks for the mutations, then compare to test files to find differences between
