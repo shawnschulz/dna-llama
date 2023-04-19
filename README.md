@@ -1,7 +1,7 @@
 # THESE ARE ALL WORKS IN PROGRESS - USE AND COMMENT ON AT YOUR OWN RISK
 
 # dnaDataSet.py
-Defines the dnaDataSet class, which is meant to be sort of like a scanpy for working with dna mutations with operability with llm datasets for finetuning and prompting with dna info from tsvs and vcfs. Currently just has a method to collect some dnadataset info from an annotated tsv and BAM files, and a method to do few shot learningwith llama.cpp quantized models since thats the only thing I can perform inference on reliably at the moment. Also saves convos and outputs as json files.
+Defines the dnaDataSet class, which is meant to be sort of like a scanpy for working with dna mutations with operability with llm datasets for finetuning and prompting with dna info from tsvs and vcfs. Currently just has a method to collect some dna dataset info from an annotated tsv and BAM files, and a method to do few shot learning with llama.cpp quantized models since thats the only thing I can perform inference on reliably at the moment. Also saves convos and outputs as json files.
 
 To-do
 - Add methods using langchain or pinecone api for saving and prompt convo info to vector database
