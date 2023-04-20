@@ -23,6 +23,12 @@ In python, can use the dnaDataSet class by copying the python file to the direct
 from dnaDataSet import dnaDataSet
 ```
 
+When you initilaize a dnaDataSet make sure to set the model path to a quantized ggml binary usable by llama.cpp
+
+```
+dnaset = dnaDataSet(model_path=/path/to/ggml_quantized_llama.cpp_model)
+```
+
 # dnaDataSet.py
 Defines the dnaDataSet class, which is meant to be sort of like a scanpy for working with dna mutations with operability with llm datasets for finetuning and prompting with dna info from tsvs and vcfs. Currently just has a method to collect some dna dataset info from an annotated tsv and BAM files, and a method to do few shot learning with llama.cpp quantized models since thats the only thing I can perform inference on reliably at the moment. Also saves convos and outputs as json files.
 
