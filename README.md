@@ -1,5 +1,27 @@
 # THESE ARE ALL WORKS IN PROGRESS - USE AND COMMENT ON AT YOUR OWN RISK
 
+Usage:
+
+clone the repo:
+
+'''
+git clone https://github.com/shawnschulz/dna-llama.git
+cd dna-llama
+'''
+
+install the requirements:
+
+'''
+#right now need to install enformer and bert stuff on your own
+pip install -r requirements.txt
+'''
+
+In python, can import the dnaDataSet class by copying the python file to the directory with your notebook or script and adding this line to it:
+'''
+#hope to make this a little less janky soon
+from dnaDataSet import dnaDataSet
+'''
+
 # dnaDataSet.py
 Defines the dnaDataSet class, which is meant to be sort of like a scanpy for working with dna mutations with operability with llm datasets for finetuning and prompting with dna info from tsvs and vcfs. Currently just has a method to collect some dna dataset info from an annotated tsv and BAM files, and a method to do few shot learning with llama.cpp quantized models since thats the only thing I can perform inference on reliably at the moment. Also saves convos and outputs as json files.
 
