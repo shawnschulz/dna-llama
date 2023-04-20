@@ -4,10 +4,10 @@ Usage:
 
 clone the repo:
 
-'''
+\\\
 git clone https://github.com/shawnschulz/dna-llama.git
 cd dna-llama
-'''
+\\\
 
 install the requirements:
 
