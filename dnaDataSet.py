@@ -8,6 +8,9 @@ import pysam
 import json 
 import pickle
 from llama_cpp import Llama
+from transformers import LlamaForCausalLM, LlamaTokenizer
+import transformers
+from datasets import load_dataset
 
 class dnaDataSet:
     def save(self, fp):
@@ -29,19 +32,19 @@ class dnaDataSet:
         self.promptOutput=''
         self.modelPath=modelPath
     
-    def __getitem__(self, position):
+    def __getitem__(self, key):
         '''
         '''
-        items=[
-            self.mutationDictionary,
-            self.bamsDictionary,
-            self.tsv,
-            self.relativeContextLength,
-            self.memoryDir,
+        items={
+            'mutationDictionary':self.mutationDictionary,
+            'bamsDictionary':self.bamsDictionary,
+            'tsv':self.tsv,
+            'relativeContextLength':self.relativeContextLength,
+            'memoryDir':self.memoryDir,
             #promptOutput is a string formatted as a hf dataset
-            self.promptOutput
-        ]
-        return items[position]
+            'promptOutput':self.promptOutput
+        }
+        return items[key]
     
     def __repr__(self):
         '''
@@ -72,7 +75,7 @@ class dnaDataSet:
         '''
         self.relativeContextLength=contextLength
     
-    def saveOutput(self, fp, memoryDir=False):
+    def saveOutput(self, fp="outputs.json", memoryDir=False):
         '''
             saves the output of a prompting to memoryDir by default (so it can be used automtically when calling prompting), but can also be called
             to save where user specifies filepath
@@ -81,20 +84,21 @@ class dnaDataSet:
             with open(fp, "w") as outfile:
                 json.dump(self.promptOutput, outfile)
         else:
-            ith open(self.memoryDir + '/' + fp, "w") as outfile:
+            with open(self.memoryDir + '/' + fp, "w") as outfile:
                 json.dump(self.promptOutput, outfile)
     
-    def saveMutationDictionary(self, fp, memoryDir=False):
+    def saveMutationDictionary(self, fp="mutationDataset.json", memoryDir=False):
         '''
             saves mutationDictionary produced from tsv file and bam files to memoryDir by default as json file, but can also be called to save where user
             specifies filepath
+            UPDATE: to make it easier to fine tune, add it to the key "train", this might cause problems later if u save it twice and try to load but oh well
         '''
         if not memoryDir:
             with open(fp, "w") as outfile:
                 json.dump(self.mutationDictionary, outfile)
         else:
             with open(self.memoryDir + '/' + fp, "w") as outfile:
-                json.dump(self.mutationDictionary, outfile)
+                json.dump({"train":self.mutationDictionary}, outfile)
     
     def makeLlamaDataset(self, tsv_dir, bam_path, bed_path):
         '''
@@ -138,6 +142,7 @@ class dnaDataSet:
                     gene = tsv['Gene.refGene'][i]
                     gt = tsv['GT'][i]
                     alt = tsv['ALT'][i]
+                    
          #           print("tsv from the tsv file is: ")
           #          print(' '.join(tsv.columns))
                     if gt == '0/1' or gt == '1/1':
@@ -170,8 +175,73 @@ class dnaDataSet:
                     #     if counter == 0:
                     #         print(str(x))
 
-        return(mutation_dictionary)
+        return(self.mutationDictionary)
     
+    def finetune(self, model=False, dataset=False, micro_batch_size: int = 4, num_epochs: int = 3,
+                 learning_rate: float = 3e-4, group_by_length=False, output_dir=False):
+        
+    #some optional things you can specify during pretraining
+        if dataset:
+            trainingDataSet=dataset
+        else:
+            trainingDataSet=self.mutationDictionary['train']
+            
+        if model:
+            base_model=model
+        else:
+            base_model=os.path.dirname(self.modelPath)
+        
+        if output_dir:
+            output_dir=output_dir
+        else:
+            output_dir=base_model
+        
+        model = LlamaForCausalLM.from_pretrained(
+        base_model,
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
+        device_map="auto",
+        )
+        tokenizer = LlamaTokenizer.from_pretrained(base_model)
+        tokenizer.pad_token_id = (
+        0  # unk. we want this to be different from the eos token
+    )
+        tokenizer.padding_side = "left"  # Allow batched inference
+        
+        trainer = transformers.Trainer(
+        model=model,
+        train_dataset=trainingDataSet,
+        args=transformers.TrainingArguments(
+            per_device_train_batch_size=micro_batch_size,
+            warmup_steps=100,
+            num_train_epochs=num_epochs,
+            learning_rate=learning_rate,
+            fp16=True,
+            logging_steps=10,
+            optim="adamw_torch",
+            save_strategy="steps",
+            save_steps=200,
+            output_dir=output_dir,
+            save_total_limit=3,
+            group_by_length=group_by_length
+        ),
+        data_collator=transformers.DataCollatorForSeq2Seq(
+            tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
+        ),
+    )
+
+        trainer.train(resume_from_checkpoint=False)
+        model.save_pretrained(output_dir)
+        return(model) 
+    def loadDataset(self, fp, from_hf=False):
+        '''
+            allows user to load a json file into mutationDictionary, note that this will overwrite the one made my methods that automatically generate
+            datasets for you
+        '''
+        if from_hf:
+            self.mutationDictionary = load_dataset(from_hf)
+        with open(fp) as json_file:
+            self.mutationDictionary = json.load(json_file)
     
     def fewShotLearning(self, read, directory=os.getcwd(),save=True):
         '''
