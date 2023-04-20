@@ -16,7 +16,7 @@ install the requirements:
 pip install -r requirements.txt
 ```
 
-In python, can import the dnaDataSet class by copying the python file to the directory with your notebook or script and adding this line to it:
+In python, can use the dnaDataSet class by copying the python file to the directory with your notebook or script and adding this line to it:
 
 ```
 #hope to make this a little less janky soon
