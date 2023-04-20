@@ -23,10 +23,21 @@ In python, can use the dnaDataSet class by copying the python file to the direct
 from dnaDataSet import dnaDataSet
 ```
 
-When you initilaize a dnaDataSet make sure to set the model path to a quantized ggml binary usable by llama.cpp
+When you initilaize a dnaDataSet can set the model path to a quantized ggml binary usable by llama.cpp
 
 ```
-dnaset = dnaDataSet(model_path=/path/to/ggml_quantized_llama.cpp_model)
+#the .bin is important!
+dnaset = dnaDataSet(modelPath='/path/to/ggml_quantized_llama.bin')
+```
+
+Alternatively you can set the model_path to a hugging face repository string (user/repo-name) or a path to the config.json of a locally installed model
+
+```
+dnaset = dnaDataSet(modelPath='pollner/dna_dataset')
+```
+
+```
+dnaset = dnaDataSet(modelPath='/path/to/config.json')
 ```
 
 # dnaDataSet.py
