@@ -54,6 +54,7 @@ To-do
 Few shot learning using alpaca lora 30B quantized, parses annotated tsv files
 
 To-do
+- Add operability with scanpy to use pinecone api for vector databases with cell embeddings produced by scanpy
 - Format inputs to prompt for few shot learning
 - Add in option to input VCF and do vcf2tsv and annovar for the user
 
