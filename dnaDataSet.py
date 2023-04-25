@@ -11,6 +11,7 @@ from llama_cpp import Llama
 from transformers import LlamaForCausalLM, LlamaTokenizer
 import transformers
 from datasets import load_dataset
+from transformers import pipeline
 
 class dnaDataSet:
     def save(self, fp):
@@ -22,7 +23,7 @@ class dnaDataSet:
             pickle.dump(self, file)
             print(f'dnaDataSet object successfully saved to "{file_name}"')
     
-    def __init__(self, modelPath=False, memoryDir=os.getcwd()):
+    def __init__(self, modelPath=False, modelDir=False, memoryDir=os.getcwd()):
         self.mutationDictionary={}
         self.bamsDictionary={}
         self.tsv=pd.DataFrame()
@@ -31,7 +32,10 @@ class dnaDataSet:
         #promptOutput is a string formatted as a hf dataset
         self.promptOutput=''
         self.modelPath=modelPath
-    
+        if modelPath and not modelDir:
+            self.modelDir=os.path.dirname(self.modelPath)
+        else:
+            self.modelDir=modelDir
     def __getitem__(self, key):
         '''
         '''
@@ -42,7 +46,9 @@ class dnaDataSet:
             'relativeContextLength':self.relativeContextLength,
             'memoryDir':self.memoryDir,
             #promptOutput is a string formatted as a hf dataset
-            'promptOutput':self.promptOutput
+            'promptOutput':self.promptOutput,
+            'modelPath':self.modelPath,
+            'modelDir':self.modelDir
         }
         return items[key]
     
@@ -68,6 +74,27 @@ class dnaDataSet:
         '''
         print("The length of the mutationDictionary keys is :")
         return(len(self.mutationDictionary))
+    
+    def toJson(self, json_fn, prompt, processed_response):
+        '''
+            I was kinda lazy and json_fn needs to already exist as a file in some way for this to work.
+            NOTE: this mutates the file by overwriting it with the new dataset appended
+        '''
+
+        instruct_dict = self.mutationDictionary
+        ##try to format it like this later:
+        #instruct_dict['instruction'] = prompt
+        #instruct_dict['input'] = ''
+        #instruct_dict['output'] = processed_response   
+        with open(self.memoryDir + '/' + json_fn, 'w+b') as f:
+            json_list = json.load(f)
+            print("json list before appending is: ")
+            print(json_list)
+            json_list.append(instruct_dict)
+            json_list = json.dumps(json_list)
+            print(json_list)
+            f.write(bytes(json_list, 'utf-8'))
+        return(json_list)
     
     def setRelativeContextLength(self, contextLength):
         '''
@@ -131,10 +158,10 @@ class dnaDataSet:
         for filename in os.listdir(tsv_dir):
             if filename.endswith('tsv'):
                 tsv_file = os.path.join(tsv_dir, filename)
+                tsv = pd.read_table(tsv_file, sep="\t")
                 tsv_length=len(tsv_file)
                 counter = 0
-                print("the tsv file is: ")
-                print(tsv_file)
+                print("the tsv file is: " + tsv_file)
                 for i in range(tsv_length):
                     chrom = tsv['CHROM'][i]
                     start_pos = tsv['POS'][i]
@@ -170,12 +197,42 @@ class dnaDataSet:
 
                             print(f"the start pos from tsv is {start_pos} the start pos from pileup is {read_start} the the gene is: "+ gene +  ' the read is: ' + str(read_list) + ' and the mutated base is: ' + mutated_base)
                             print('for sanity, the mutated allele was: ' + alt)
-                            self.mutationDictionary["Reference Genome: hg38, Read: " + read_seq] =  f"the start pos from tsv is {start_pos} the start pos from pileup is {read_start} the the gene is: "+ gene + ' and the mutated base is: ' + mutated_base
+                            self.mutationDictionary['instruction'] = "This read has a mutation. What is the metadata for this read? The read: " + read_seq
+                            self.mutationDictionary['input'] =   f"Chromsome position: {chrom}, Start position: {start_pos}, Reference Genome: hg38"
+                            self.mutationDictionary['output'] =  f"the start pos from tsv is {start_pos} the start pos from pileup is {read_start} the the gene is: "+ gene + ', the mutated base is: ' + mutated_base
                     # for x in pileup:
                     #     if counter == 0:
                     #         print(str(x))
 
         return(self.mutationDictionary)
+    
+    def loadHfModel(self, dataset=False,output_dir=False, micro_batch_size: int = 4, num_epochs: int = 3,
+                 learning_rate: float = 3e-4):
+        model = LlamaForCausalLM.from_pretrained(
+        self.modelPath,
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
+        device_map="auto",
+        )
+        tokenizer = LlamaTokenizer.from_pretrained(self.modelPath)
+        tokenizer.pad_token_id = (
+        0  # unk. we want this to be different from the eos token
+    )
+        tokenizer.padding_side = "left"  # Allow batched inference
+    
+    def modelFunction(self, fromOnline=False, quantized=False):
+        from instruct_pipeline import InstructionTextGenerationPipeline
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        if fromOnline:
+            generate_text = pipeline(model=self.modelPath, torch_dtype=torch.bfloat16, trust_remote_code=True, device_map="auto")    
+        elif quantized:
+            generate_text = Llama(model_path=self.modelPath)
+        else:    
+            model_dir = self.modelDir
+            model = AutoModelForCausalLM.from_pretrained(model_dir, torch_dtype=torch.bfloat16, device_map="auto")
+            tokenizer = AutoTokenizer.from_pretrained(model_dir, padding_side="left")
+            generate_text = InstructionTextGenerationPipeline(model=model, tokenizer=tokenizer)
+        return(generate_text)
     
     def finetune(self, model=False, dataset=False, micro_batch_size: int = 4, num_epochs: int = 3,
                  learning_rate: float = 3e-4, group_by_length=False, output_dir=False):
@@ -233,6 +290,7 @@ class dnaDataSet:
         trainer.train(resume_from_checkpoint=False)
         model.save_pretrained(output_dir)
         return(model) 
+    
     def loadDataset(self, fp, from_hf=False):
         '''
             allows user to load a json file into mutationDictionary, note that this will overwrite the one made my methods that automatically generate
@@ -243,7 +301,7 @@ class dnaDataSet:
         with open(fp) as json_file:
             self.mutationDictionary = json.load(json_file)
     
-    def fewShotLearning(self, read, directory=os.getcwd(),save=True):
+    def fewShotLearning(self, read, directory=os.getcwd(),save=True, quantized=False):
         '''
             takes a read as a prompt and runs inference with llama.cpp model, note that it automtically saves json files of ur convo and the few shot learning
             dataset that is produced
@@ -258,9 +316,16 @@ class dnaDataSet:
             if counter < self.relativeContextLength:
                 prompt_string += "Input: " + key + "\n" + " Output: " + self.mutationDictionary[key] + "\n"
         prompt = 'Reference Genome: hg38, Read: ' + read
-        output = llm(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ", max_tokens=32, stop=["Input:"], echo=True)
-        self.promptOutput += "\n" + output
+        if quantized:
+            #check if its a binary, as it would be if you were using llama cpp, maybe in the future i'll change this
+            llm = Llama(model_path=self.modelPath)
+            output = llm(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ", max_tokens=32, stop=["Input:"], echo=True)
+            print(output)
+            self.promptOutput += "\n" + output
+        else:
+            output = self.modelFunction(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ")
+            self.promptOutput += "\n" + output
         if save:    
             self.saveOutput(directory + '/output.json')
             self.saveMutationDictionary(directory + '/mutationDictionary.json')
-        print(output)
+        
