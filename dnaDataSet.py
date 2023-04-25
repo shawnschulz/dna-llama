@@ -319,12 +319,12 @@ class dnaDataSet:
         if quantized:
             #check if its a binary, as it would be if you were using llama cpp, maybe in the future i'll change this
             llm = Llama(model_path=self.modelPath)
-            output = llm(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ", max_tokens=32, stop=["Input:"], echo=True)
-            print(output)
-            self.promptOutput += "\n" + output
+            output = llm(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ", max_tokens=200, stop=["Input:"], echo=True)
+            print(output["choices"][0]["text"])
+            self.promptOutput += "\n" + json.dumps(output["choices"][0]["text"])
         else:
             output = self.modelFunction(prompt_string + "\n" + "Input: " + prompt + "\n" + "Output: ")
-            self.promptOutput += "\n" + output
+            self.promptOutput += "\n" + json.dumps(output["choices"][0]["text"])
         if save:    
             self.saveOutput(directory + '/output.json')
             self.saveMutationDictionary(directory + '/mutationDictionary.json')
